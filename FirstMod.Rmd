@@ -1,0 +1,64 @@
+---
+title: "Mushroom Analysis"
+author: "Sidhant Bhayana"
+date: "February 27, 2016"
+output: word_document
+---
+
+Basic Check on Data 
+
+```{r}
+mushdata <- read.csv("mushrooms.csv", header=TRUE)
+str(mushdata)
+mushdata$veil_type <- NULL
+table(mushdata$type)
+summary(mushdata)
+attach(mushdata)
+colnames(mushdata)
+newmushdata <- mushdata[-17]
+summary(newmushdata)
+```
+
+You can also embed plots, for example:
+
+```{r}
+library(caret)
+inTrain <- createDataPartition(newmushdata$type, p=0.7, list=FALSE)
+train <- newmushdata[inTrain,]
+test <- newmushdata[-inTrain,]
+lr <- glm(type~., family=binomial, data=newmushdata)
+summary(lr)
+prob <- predict(lr , type="response", test)
+length(prob)
+lr_class <- rep("poisonous",2436)
+lr_class[prob>0.5]="edible"
+table(lr_class,test$type)
+confusionMatrix(lr_class, test$type)
+```
+
+Decision Trees: 
+```{r}
+set.seed(1)
+library("C50")
+library(caret)
+inrain <- createDataPartition(newmushdata$type, p=0.7, list=FALSE)
+rain<- newmushdata[inrain,]
+est <- newmushdata[-inrain,]
+ncol(rain)
+type_model <- C5.0(rain[,-17], rain$type )
+
+summary(type_model)
+type_predict <- predict(type_model, est)
+confusionMatrix(type_predict, est$type)
+```
+ Random Forest: 
+ 
+ 
+```{r}
+library(randomForest)
+rand_model <- randomForest(type~., data=rain)
+
+rand_predict <- predict(rand_model,est)
+confusionMatrix(rand_predict,est$type)
+```
+
