@@ -61,4 +61,79 @@ rand_model <- randomForest(type~., data=rain)
 rand_predict <- predict(rand_model,est)
 confusionMatrix(rand_predict,est$type)
 ```
+```{r}
+library(caret)
+mushdata <- read.csv("mushrooms.csv", header=TRUE)
+str(mushdata)
+mushdata$veil_type <- NULL
+attach(mushdata)
+colnames(mushdata)
+newmushdata <- mushdata[-17]
+
+inTrain <- createDataPartition(newmushdata$type, p=0.7, list=FALSE)
+train <- newmushdata[inTrain,]
+test <- newmushdata[-inTrain,]
+library(MASS)
+library(gbm)
+set.seed(1)
+bst <- gbm(type~., data=newmushdata, distribution = "gaussian", 
+           n.trees=500, interaction.depth=3)
+bst
+
+plot(bst,i="ring_type")
+summary(bst)
+newmushdata[-inTrain,"type"]
+
+for ( i in seq(0.01,0.1,0.01)){
+bst <- gbm(type~., data=train, distribution = "gaussian", n.trees=1000, 
+           interaction.depth=3, shrinkage=i)
+pred <- predict(bst, test, n.trees=1000)
+print(mean((pred-test$type)^2))}
+
+```
+
+```{r}
+library(adabag)
+inTrain3 <- createDataPartition(newmushdata$type, p=0.7, list=FALSE)
+adboost <- boosting(type~., data=train, 
+                    boos=TRUE, mfinal=100, coflearn="Breiman")
+summary(adboost)
+adboost$importance
+adboost$trees
+adboost$weights
+pred<-predict(adboost,test)
+pred
+t1<-table(pred$class, newmushdata[-inTrain,"type"])
+sum(diag(t1))/sum(t1)
+
+```
+```{r}
+library(mlbench)
+inTrain4 <- createDataPartition(newmushdata$type, p=0.7, list=FALSE)
+
+fitControl <- trainControl(method="repeatedCV", number=3)
+gbmFit <- train(type~., data=train, method="gbm", 
+                trControl=fitControl, verbose=FALSE)
+gbmFit
+
+```
+
+```{r}
+gbmgrid <- expand.grid(interaction.depth = c(2,4,6)
+                       , n.trees = seq(50,300, 50)
+                       ,shrinkage = c(0.01,0.1)
+                       ,n.minobsinnode = 15
+                       )
+
+gbmFit2 <- train(type ~., data=train, method="gbm",
+                 trControl=fitControl, verbose =FALSE, tuneGrid=gbmgrid)
+
+gbmFit2
+
+trellis.par.set(caretTheme())
+plot(gbmFit2)
+ggplot(gbmFit2)
+
+```
+
 
